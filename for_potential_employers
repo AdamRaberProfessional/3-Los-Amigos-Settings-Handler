@@ -1,0 +1,14 @@
+This is how I get my JSON store data and images for Viwards. I really debated posting this, but I think it really
+showcases my ability to do HTTPS requests, use internet JSON files for rendering, and make use of asynchronous
+programming. I figured if someone gets to the point where they can use this against my company (ex. they get access to
+the source code), I'm already done for with or without this file online.
+
+
+This file downloads a list of settings and image numbers. Then it checks previously saved settings and image numbers.
+If settings and images numbers both match, it will download both. If one matches, it will only download either the
+settings or the images.
+There are also many other reasons why it would download them. If there were no previous settings, or there was an error
+last time getting either, then it automatically re-downloads everything.
+
+p.s. I also know how to use .then() statements with promises, but they didn't make sense for this type of project where
+everything needs to read like regular code.
