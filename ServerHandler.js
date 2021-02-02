@@ -1,6 +1,7 @@
 import * as firebase from 'firebase';
 import * as Methods from "./AllOtherCode";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {Alert} from "react-native";
 import React from "react";
 import NetInfo from "@react-native-community/netinfo";
 
@@ -12,18 +13,18 @@ let dev = false
 const storageRef = firebase.storage().ref()
 let settings = {};
 let images = {};
-let oldServerData;
-let recentServerData;
+let oldWebsiteData;
+let recentWebsiteData;
 let downloadImages = false;
 let downloadSettings = false;
 
 let errorThrown = false;
 let promiseResponse;
-let responseData;
+let parsedResponse;
 
 
 
-export async function checkUpdate(_this) {
+export async function checkUpdate() {
     NetInfo.fetch()
         .then(connectionState =>
             {
@@ -37,10 +38,10 @@ export async function checkUpdate(_this) {
     /*                                                                                                                                          .                      .
       Get the previously saved settings/images numbers
     */
-    promiseResponse = await AsyncStorage.getItem('serverData');
-    responseData = await JSON.parse(promiseResponse);
-    if (responseData) {
-        oldServerData = responseData;
+    promiseResponse = await AsyncStorage.getItem('websiteData');
+    parsedResponse = await JSON.parse(promiseResponse);
+    if (parsedResponse) {
+        oldWebsiteData = parsedResponse;
     }
 
     if(dev){
@@ -50,41 +51,37 @@ export async function checkUpdate(_this) {
     }
 
 
-    resetResponses()
 
     /*                                                                                                                                          .                      .
       Get the current settings/images numbers and the words from the viwards website
     */
-    let url = 'https://{sensitive data}.com';
+    let url = "website link with JSON data stored";
     let options = {
         headers: {
             dataType: 'json',
-            'Authorization': 'Bearer {sensitive data}'
+            'Authorization': "confidential data"
         }
     };
 
     promiseResponse = await fetch(url, options)
-        .catch(err => handleError(err, 3));
-    recentServerData = await promiseResponse.json();
-    await AsyncStorage.setItem("serverData", JSON.stringify(recentServerData))
-        .catch(err => handleError(err, 4));
+        .catch(err => handleError(err, 1));
+    recentWebsiteData = await promiseResponse.json();
+    await AsyncStorage.setItem("websiteData", JSON.stringify(recentWebsiteData))
+        .catch(err => handleError(err, 2));
 
 
     /*.                   .
-    if there was no data from the server already stored, we need to download both the images and
-    settings. If there was data from the server already stored, we need to check it
-    against the new
-    data to see if the version numbers for the images and settings match. If they don't match for
-    either the settings or the images, that means we need to download either the settings or
-    images (or both).*/
-    if(oldServerData != null) {
-        if (oldServerData["versionNumbers"]["images"] !== recentServerData["versionNumbers"]["images"]) {
+    if there was no data from the server already stored, download both the images and
+    settings. If there was data from the website already stored, check it against the new
+    data to see if the version numbers for the images and settings match, and download accordingly */
+    if(oldWebsiteData != null) {
+        if (oldWebsiteData["versionNumbers"]["images"] !== recentWebsiteData["versionNumbers"]["images"]) {
             console.log("downloading images because numbers don't match");
             downloadImages = true;
         } else {
             console.log("Images numbers match");
         }
-        if (oldServerData["versionNumbers"]["settings"] !== recentServerData["versionNumbers"]["settings"]) {
+        if (oldWebsiteData["versionNumbers"]["settings"] !== recentWebsiteData["versionNumbers"]["settings"]) {
             downloadSettings = true
             console.log("downloading settings because numbers don't match");
         } else {
@@ -98,34 +95,31 @@ export async function checkUpdate(_this) {
 
 
     promiseResponse = await AsyncStorage.getItem("settings");
-    responseData = await JSON.parse(promiseResponse);
-    if (responseData) {
-        settings = responseData
+    parsedResponse = await JSON.parse(promiseResponse);
+    if (parsedResponse) {
+        settings = parsedResponse
     }else{
         /*.              .
-        * If there's no data stored in settingsAndImages, we need to download both, even if the versions
-        * from our web server match.  */
+        * If there's no settings data, download both even if the versions
+        * from the website match to be safe.  */
         console.log("downloading both because there were no settings saved to the phone.")
         downloadSettings = true
         downloadImages = true
     }
 
-    resetResponses()
 
     promiseResponse = await AsyncStorage.getItem("images");
-    responseData = await JSON.parse(promiseResponse);
-    if (responseData) {
-        images = responseData
+    parsedResponse = await JSON.parse(promiseResponse);
+    if (parsedResponse) {
+        images = parsedResponse
     }else{
         /*.              .
-        * If there's no data stored in settingsAndImages, we need to download both, even if the versions
-        * from our web server match.  */
+        * If there's no data stored in images, download both even if the versions
+        * from the website match to be safe.  */
         console.log("downloading both because there were no images saved to the phone.")
         downloadSettings = true
         downloadImages = true
     }
-
-    resetResponses()
 
 
 
@@ -133,8 +127,8 @@ export async function checkUpdate(_this) {
     Download both settings and images if there was an error last time.  */
     promiseResponse = await AsyncStorage.getItem("errorThrown");
     if(promiseResponse){
-        responseData = await JSON.parse(promiseResponse);
-        if(responseData === "true"){
+        parsedResponse = await JSON.parse(promiseResponse);
+        if(parsedResponse === "true"){
             downloadSettings = true
             downloadImages = true
             console.log("downloading images and settings because there was an error last time.")
@@ -144,50 +138,41 @@ export async function checkUpdate(_this) {
 
     if(downloadSettings){
         console.log("Now downloading settings")
-        options =  {
-            headers: {
-                dataType: 'json',
-            }
-        };
-        promiseResponse = await storageRef.child("settings.json").getDownloadURL()
-            .catch(err => handleError(err, 6));
-        promiseResponse = await fetch(promiseResponse, options)
-            .catch(err => handleError(err, 7));
-        responseData = await promiseResponse.json();
-        settings = responseData
+    options =  {
+        headers: {
+            dataType: 'json',
+        }
+    };
+    promiseResponse = await storageRef.child("settings.json").getDownloadURL()
+        .catch(err => handleError(err, 3));
+    promiseResponse = await fetch(promiseResponse, options)
+        .catch(err => handleError(err, 4));
+    parsedResponse = await promiseResponse.json();
+    settings = parsedResponse
     }else{
         console.log("not downloading settings")
     }
-    resetResponses()
 
 
-    /***This needs to be the last if statement before the end because it sets the storage and global.stores.
-     If it's not last, and a setting is set***/
+    /***This needs to be the last if statement before finalSettings() because it sets asyncstorage and global.stores.
+     ***/
     if(downloadImages){
         images = {}
         for(const key in settings){
-            if(key !== "otherData") {
-                /* .            .
-                otherData should be the only other keys in the JSON object except for the stores. */
-                const filename = await key.replace(" ", '_').toLowerCase() + ".jpg"
+            if(key.slice(0, 5) === "store") {
+                const storeNumber = key
+                const filename = await storeNumber.replace(" ", '_').toLowerCase() + ".jpg"
 
                 promiseResponse = await storageRef.child("images/"+filename).getDownloadURL()
-                    .catch(err => handleError(err,9));
+                    .catch(err => handleError(err,5));
                 promiseResponse = await fetch(promiseResponse)
-                    .catch(err => handleError(err,10));
-                responseData = await promiseResponse.blob();
+                    .catch(err => handleError(err,6));
+                parsedResponse = await promiseResponse.blob();
                 const reader = new FileReader();
-                await reader.readAsDataURL(responseData);
-                /* reads data as base64 image and saves it in a list.*/
-                await reader.onloadend = function () {
-                    /*                                                                                                                                  . .
-                    I removed:
-                    settingsAndImages["images"][key] = reader.result
-                    because I was getting a null is not an object error or can't change a mutable object error. I have no idea
-                    why I was getting it on images but not on settings, but it was sure happening. So I just lumped the image
-                    in with settings
-                    */
+                await reader.readAsDataURL(parsedResponse);
+                reader.onloadend = async function () {
                     images[key] = reader.result
+
                 }
             }
         }
@@ -195,15 +180,19 @@ export async function checkUpdate(_this) {
         console.log("not downloading images")
     }
 
+
+
     await finalSettings()
 }
 
 
-function handleError(err, lineNumber="none"){
+function handleError(err, errorCode){
+    /*
+    If there's an error thrown, create an inescapable window and force download of images and settings on next load.*/
     console.log("Error on line")
-    console.log(lineNumber)
+    console.log(errorCode)
     Alert.alert("Error Getting Data", "Please restart your app or try again later.\nError code "
-        + lineNumber,[null],
+         + errorCode,[null],
         {cancelable: false}
     )
     errorThrown = true
@@ -212,45 +201,35 @@ function handleError(err, lineNumber="none"){
 
 
 async function finalSettings(){
-    /* It's a personal preference - I like having big chunks of code that do one thing to be in separate functions for my
-    own personal projects.. I know this isn't standard practice, so if that's not how your company does it, I have no
-    problem adapting.
-    also, the reason for if(images) is because the app seems to run fine without an image, so I just made it so it
-    doesn't crash if the image doesn't get saved in memory correctly for some reason..*/
+    /* Making a function for readability even if it's not re-used is a personal preference. If your company doesn't
+    allow that, I have no problem using functions only for re-use.*/
 
     for(const key in settings){
         /*                                                                                                                              .                                .
-        Sets the verificationWords to what's in the server data (from cPanel) before saving. */
+        Set the verificationWords to what's in the server data (from cPanel) before saving. */
         if(key !== "otherData") {
-            settings[key]["misc"]["verificationWords"] = Methods.getValuesFromEachKey(recentServerData["verificationWords"][key])
+            settings[key]["misc"]["verificationWords"] = Methods.getValuesFromEachKey(recentWebsiteData["verificationWords"][key])
         }
     }
 
     await AsyncStorage.setItem("settings", JSON.stringify(settings))
         .catch(err => handleError(err, 15));
-    if(images) {
-        await AsyncStorage.setItem("images", JSON.stringify(images))
-            .catch(err => handleError(err, 16));
-    }
+
+    await AsyncStorage.setItem("images", JSON.stringify(images))
+        .catch(err => handleError(err, 16));
+
     global.stores = settings;
-    /* Using global variables is NOT standard practice for react native development. Data is usually passed through
-    props, which is how the majority of data is passed between screens. Because much of the styling
-    is done through this JSON object, errors will be thrown if it's passed as a prop. That, combined with an emphasis
-    on getting the initial live testing done as quick as possible, is why a global variable is used here. */
-    if(images){
-        for(const key in images){
-            if(key in global.stores) {
-                global.stores[key]["image"] = images[key]
-            }
+
+
+    for(const key in images){
+        if(key in global.stores) {
+            global.stores[key]["image"] = images[key]
         }
     }
+
     console.log("final settings done");
     if(!errorThrown){
         AsyncStorage.setItem("errorThrown", JSON.stringify("false"))
     }
 }
 
-function resetResponses(){
-    promiseResponse = null
-    responseData = null
-}
