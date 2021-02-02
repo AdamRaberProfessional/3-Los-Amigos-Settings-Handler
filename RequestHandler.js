@@ -169,6 +169,8 @@ export async function checkUpdate() {
                     .catch(err => handleError(err,6));
                 parsedResponse = await promiseResponse.blob();
                 const reader = new FileReader();
+                /* 
+                convert blob image to base64 and add to JSON object 'images'.*/
                 await reader.readAsDataURL(parsedResponse);
                 reader.onloadend = async function () {
                     images[key] = reader.result
