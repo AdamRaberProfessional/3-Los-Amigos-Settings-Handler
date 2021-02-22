@@ -220,12 +220,12 @@ async function finalSettings(){
     await AsyncStorage.setItem("images", JSON.stringify(images))
         .catch(err => handleError(err, 16));
 
-    global.stores = settings;
+    global.storeSettingsVariable = settings;
 
 
     for(const key in images){
-        if(key in global.stores) {
-            global.stores[key]["image"] = images[key]
+        if(key in global.storeSettingsVariable) {
+            global.storeSettingsVariable[key]["image"] = images[key]
         }
     }
 
