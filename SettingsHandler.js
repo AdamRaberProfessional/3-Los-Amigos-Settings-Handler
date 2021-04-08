@@ -53,7 +53,7 @@ export async function checkUpdate() {
 
 
     /*                                                                                                                                          .                      .
-      Get the current settings/images numbers and the words from the viwards website
+      Get current settings/images numbers and verification words from the viwards website
     */
     let url = "website link with JSON data stored";
     let options = {
